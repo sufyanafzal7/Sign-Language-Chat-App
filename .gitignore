@@ -1,0 +1,14 @@
+# Python Virtual Environment
+ml_models/venv/
+__pycache__/
+*.pyc
+
+# Large ML Models / Weights
+*.pt
+*.npy
+processed_features/
+
+# Flutter / Android Studio builds
+mobile_app/build/
+.dart_tool/
+.pub-cache/

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "273672085385",
+    "project_id": "sign-language-chat-app",
+    "storage_bucket": "sign-language-chat-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:273672085385:android:ce97e27c7c9fa62f628b58",
+        "android_client_info": {
+          "package_name": "com.example.mobile_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCfF4l1hMxUTwPUH0proxHX0cnObqP0vpY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

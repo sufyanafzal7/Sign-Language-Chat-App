@@ -1,10 +1,7 @@
 plugins {
-    // ...
-
-    // Add the dependency for the Google services Gradle plugin
     id("com.google.gms.google-services") version "4.3.15" apply false
-
 }
+
 allprojects {
     repositories {
         google()
@@ -21,9 +18,19 @@ rootProject.layout.buildDirectory.value(newBuildDir)
 subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
-}
-subprojects {
     project.evaluationDependsOn(":app")
+}
+
+// Fix tflite_flutter specifically: its Java target is 11 but Kotlin
+// defaults to JVM 21 on your machine. Target it by project name only.
+project(":tflite_flutter") {
+    tasks.configureEach {
+        if (this is org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile) {
+            compilerOptions {
+                jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+            }
+        }
+    }
 }
 
 tasks.register<Delete>("clean") {

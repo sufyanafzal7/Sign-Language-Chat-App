@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:mobile_app/screens/sign_camera_screen.dart';
 import 'package:video_player/video_player.dart';
 import 'video_dictionary_screen.dart';
 
@@ -245,21 +246,34 @@ class _ChatScreenState extends State<ChatScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
+            // LOCATION: Inside lib/screens/chat_screen.dart -> _buildAlternativeGesturePanel method blocks
+
             _buildGesturePanelButton(
               theme: theme,
               icon: Icons.grid_on_rounded,
               label: "Alphabets",
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Camera initializing: Tracking hand positions...')),
+              onTap: () async {
+                // Route cleanly to view camera overlay matching target signature mode
+                final result = await Navigator.of(context).push<String>(
+                  MaterialPageRoute(
+                    builder: (context) => const SignCameraScreen(checkMode: "Alphabets"),
+                  ),
                 );
+                if (result != null) _handleSend(result);
               },
             ),
             _buildGesturePanelButton(
               theme: theme,
               icon: Icons.videocam_rounded,
               label: "Sentences",
-              onTap: () => _buildSentenceMacroPicker(),
+              onTap: () async {
+                final result = await Navigator.of(context).push<String>(
+                  MaterialPageRoute(
+                    builder: (context) => const SignCameraScreen(checkMode: "Sentences"),
+                  ),
+                );
+                if (result != null) _handleSend(result);
+              },
             ),
           ],
         ),

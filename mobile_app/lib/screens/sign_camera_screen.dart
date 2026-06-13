@@ -1,4 +1,6 @@
 // LOCATION: lib/screens/sign_camera_screen.dart
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/services.dart';
@@ -13,7 +15,8 @@ class SignCameraScreen extends StatefulWidget {
   @override
   State<SignCameraScreen> createState() => _SignCameraScreenState();
 }
-
+List<double> _scalerMean = [];
+List<double> _scalerStd = [];
 class _SignCameraScreenState extends State<SignCameraScreen> {
   CameraController? _cameraController;
   List<CameraDescription>? _availableCameras;
@@ -39,102 +42,100 @@ class _SignCameraScreenState extends State<SignCameraScreen> {
   }
 
   Future<void> _initializeModelAndHardware() async {
-    // ── A. Camera permission ──────────────────────────────────────
+    // A. Permission
     var cameraStatus = await Permission.camera.status;
     if (!cameraStatus.isGranted) {
       cameraStatus = await Permission.camera.request();
     }
     if (!cameraStatus.isGranted) {
-      if (mounted) {
-        setState(() {
-          _initError = "CAMERA PERMISSION DENIED.\nGo to Settings → Apps → this app → Permissions → Allow Camera.";
-          _isInitializing = false;
-        });
-      }
+      if (mounted) setState(() {
+        _initError = "CAMERA PERMISSION DENIED.\nGo to Settings → Apps → this app → Permissions → Allow Camera.";
+        _isInitializing = false;
+      });
       return;
     }
 
-    // ── B. Pose detector ─────────────────────────────────────────
+    // B. Pose detector (used by both modes)
     try {
-      final options = PoseDetectorOptions(
+      _poseDetector = PoseDetector(options: PoseDetectorOptions(
         model: PoseDetectionModel.base,
         mode: PoseDetectionMode.stream,
-      );
-      _poseDetector = PoseDetector(options: options);
+      ));
     } catch (e) {
       debugPrint("PoseDetector init failed: $e");
-      // Non-fatal — camera preview still works without pose detection
     }
 
-    // ── C. TFLite model + labels (non-fatal if not yet bundled) ──
+    // C. Load the correct model based on mode
     try {
-      _tfliteInterpreter = await Interpreter.fromAsset(
-          'assets/model/sign_language.tflite');
-      final labelData =
-      await rootBundle.loadString('assets/model/labels.txt');
-      _labels = labelData
-          .split('\n')
-          .map((e) => e.trim())
-          .where((e) => e.isNotEmpty)
-          .toList();
-      debugPrint("TFLite model loaded. Labels: ${_labels.length}");
-    } catch (e) {
-      // Model not bundled yet — camera still opens, inference disabled
-      debugPrint("TFLite model not found (expected during development): $e");
-      if (mounted) {
-        setState(() {
-          _realtimePredictionToken = "MODEL NOT LOADED";
-        });
+      if (widget.checkMode == "Sentences") {
+        // Word recognition — LSTM model
+        _tfliteInterpreter = await Interpreter.fromAsset(
+            'assets/model/sign_language.tflite');
+        final labelData = await rootBundle.loadString('assets/model/labels.txt');
+        _labels = labelData.split('\n')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+        debugPrint("LSTM word model loaded. Labels: ${_labels.length}");
+      } else {
+        // Letter recognition — Random Forest / SVM model
+        _tfliteInterpreter = await Interpreter.fromAsset(
+            'assets/model/letter_classifier.tflite');
+        final labelData =
+        await rootBundle.loadString('assets/model/letter_labels.txt');
+        _labels = labelData.split('\n')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+        // Load scaler params for Hu moment normalization
+        final scalerJson =
+        await rootBundle.loadString('assets/model/scaler_params.json');
+        final scalerData = json.decode(scalerJson);
+        _scalerMean = List<double>.from(scalerData['mean']);
+        _scalerStd = List<double>.from(scalerData['std']);
+        debugPrint("Letter model loaded. Labels: ${_labels.length}");
       }
+    } catch (e) {
+      debugPrint("Model not found: $e");
+      if (mounted) setState(() {
+        _realtimePredictionToken = "MODEL NOT LOADED";
+      });
     }
 
-    // ── D. Camera hardware ───────────────────────────────────────
+    // D. Camera
     try {
       _availableCameras = await availableCameras();
       if (_availableCameras == null || _availableCameras!.isEmpty) {
-        if (mounted) {
-          setState(() {
-            _initError = "No cameras found on this device.";
-            _isInitializing = false;
-          });
-        }
+        if (mounted) setState(() {
+          _initError = "No cameras found.";
+          _isInitializing = false;
+        });
         return;
       }
-
-      // Prefer front camera, fall back to first available
       final targetCamera = _availableCameras!.firstWhere(
             (cam) => cam.lensDirection == CameraLensDirection.front,
         orElse: () => _availableCameras!.first,
       );
-
       _cameraController = CameraController(
         targetCamera,
         ResolutionPreset.medium,
         enableAudio: false,
         imageFormatGroup: ImageFormatGroup.yuv420,
       );
-
       await _cameraController!.initialize();
-
-      // Only start image stream if ML pipeline is fully loaded
       if (_tfliteInterpreter != null && _poseDetector != null) {
         await _cameraController!.startImageStream(_processLiveCameraFrame);
       }
-
     } catch (e) {
-      debugPrint("Camera hardware init failed: $e");
-      if (mounted) {
-        setState(() {
-          _initError = "Camera failed to open.\nError: $e";
-          _isInitializing = false;
-        });
-      }
+      debugPrint("Camera init failed: $e");
+      if (mounted) setState(() {
+        _initError = "Camera failed to open.\nError: $e";
+        _isInitializing = false;
+      });
       return;
     }
 
-    if (mounted) {
-      setState(() => _isInitializing = false);
-    }
+    if (mounted) setState(() => _isInitializing = false);
   }
 
   void _processLiveCameraFrame(CameraImage image) async {

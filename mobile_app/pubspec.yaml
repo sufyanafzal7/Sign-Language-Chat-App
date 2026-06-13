@@ -24,6 +24,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/sign_map.json
+    - assets/model/
     - assets/signs/original/
     - assets/signs/cropped/
     - assets/signs/test/

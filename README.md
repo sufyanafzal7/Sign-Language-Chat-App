@@ -811,11 +811,10 @@ The app uses Kotlin DSL (`build.gradle.kts`) throughout. A significant engineeri
 
 | Name | Role |
 |---|---|
-| **Sufyan Afzal** | Lead developer — Flutter app, ML pipeline, system integration |
-| **Sabeen Saeed** | Project partner — dataset collection, testing, documentation |
-| **Mr. Qasim Malik** | Project supervisor — COMSATS University Islamabad |
+| **Sufyan Afzal** | Lead developer — Flutter app, ML pipeline, system integration, dataset collection, testing, documentation |
+| **Mr. Shujaat Hussain** | Project supervisor — COMSATS University Islamabad |
 
-This project is developed as a **Final Project for Subject Mobile App Development** for a Bachelor of Science in Artificial Intelligence at **COMSATS University Islamabad**, expected graduation 2027.
+This project is developed as a **Final Project for the Subject Mobile App Development** for a Bachelor of Science in Artificial Intelligence at **COMSATS University Islamabad**, expected graduation 2027.
 
 ---
 
